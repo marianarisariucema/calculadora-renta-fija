@@ -177,11 +177,14 @@ def main():
         errores.append(str(e)); log(f"  {e}")
 
     log("BYMA: precios de fin de día")
-    try:
+    if not os.environ.get("BYMA_CLIENT_ID") or not os.environ.get("BYMA_CLIENT_SECRET"):
+        log("  Todavía no hay credenciales de BYMA cargadas: se omiten los precios (no es un error).")
+    else:
+      try:
         tok = token_byma()
         datos["precios"], datos["fecha_precios"] = precios_byma(tok)
         datos["futuros"] = futuros_byma(tok)
-    except RuntimeError as e:
+      except RuntimeError as e:
         errores.append(str(e)); log(f"  {e}")
 
     # Si BYMA falló, se conservan los precios del día anterior
@@ -207,3 +210,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
