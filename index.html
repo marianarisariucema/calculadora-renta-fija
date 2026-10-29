@@ -1012,7 +1012,8 @@ async function actualizarBCRA(){
   $("bcraMsg").textContent="Consultando al BCRA…";
   try{
     const ids = await bcraIds();
-    const desdeCer = iso(addDays(D(CER_LAST),-5));
+    // la API no acepta un "Desde" posterior a hoy (el CER se publica por adelantado)
+    const desdeCer = [iso(addDays(D(CER_LAST),-5)), iso(addDays(new Date(),-30))].sort()[0];
     const cer = await bcraSerie(ids.cer, desdeCer);
     const nCer = Object.keys(cer).filter(d=>d>CER_LAST).length;
     if(Object.keys(cer).length){ mergeCER(cer); try{ const prev=JSON.parse(localStorage.getItem("cqc_cer")||"{}"); localStorage.setItem("cqc_cer",JSON.stringify(Object.assign(prev,cer))); }catch(_){} }
