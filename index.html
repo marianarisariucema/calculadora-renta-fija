@@ -59,6 +59,7 @@ th,td{padding:4px 6px;border:1px solid #d6d6d6;text-align:right;white-space:nowr
 th{font-weight:700;background:var(--soft);color:var(--ink)}
 td:first-child,th:first-child{text-align:left}
 #tFer th,#tFer td{text-align:left}
+table.fuentes th,table.fuentes td{white-space:normal}
 td input{width:88px;text-align:right;padding:2px 4px}
 td .tk{font-weight:700}
 tr.vencida td{color:var(--muted);text-decoration:line-through}
@@ -125,8 +126,8 @@ footer{border-top:1px solid var(--line);padding-block:14px 24px;color:var(--mute
       <select id="plazo"><option value="0">Contado inmediato (T+0)</option><option value="1" selected>24 hs (T+1)</option></select></div>
     <div class="fld"><label for="infl">Inflación mensual esperada</label><input type="number" id="infl" step="0.1" value="2.0" style="width:90px"></div>
     <div class="chips">
-      <button class="walk" id="btnWalk" type="button">+1 día hábil</button>
-      <button id="btnBack" type="button">−1 día hábil</button>
+      <button class="walk" id="btnWalk" type="button" title="Avanza la fecha de operación al próximo día hábil y recalcula todo">Caminar 1 día</button>
+      <button id="btnBack" type="button" title="Retrocede la fecha de operación al día hábil anterior">Volver 1 día</button>
     </div>
     <div class="chips" id="chips"></div>
   </div>
@@ -310,7 +311,7 @@ footer{border-top:1px solid var(--line);padding-block:14px 24px;color:var(--mute
   <div class="panel" id="cerPanel">
     <h3>2. CER y A3500 (BCRA)</h3>
     <p class="hint">En esta calculadora el CER y el A3500 se obtienen en forma automática: cada vez que se abre, consulta la API pública de Estadísticas Monetarias del BCRA (versión 4.0), sin descargas ni carga manual. CER cargado hasta el <b id="cerLast2" class="num"></b>.</p>
-    <table style="margin:8px 0 10px;font-size:12px">
+    <table class="fuentes" style="margin:8px 0 10px;font-size:12px">
       <thead><tr><th>Dato</th><th style="text-align:left">Variable BCRA</th><th style="text-align:left">Consulta en la web del BCRA</th></tr></thead>
       <tbody>
         <tr><td>CER (base 2.2.02=1)</td><td style="text-align:left">30</td><td style="text-align:left"><a href="https://www.bcra.gob.ar/en/main-data-variables/?serie=3540" target="_blank" rel="noopener">Serie CER</a></td></tr>
