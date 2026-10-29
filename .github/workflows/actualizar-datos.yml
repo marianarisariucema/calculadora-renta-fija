@@ -1,0 +1,41 @@
+name: Actualizar datos del día
+
+on:
+  schedule:
+    # De lunes a viernes a las 18:40 de Buenos Aires (21:40 UTC), después del cierre.
+    - cron: "40 21 * * 1-5"
+    # Segundo intento a las 20:10 por si BYMA todavía no había publicado el cierre.
+    - cron: "10 23 * * 1-5"
+  workflow_dispatch: {}   # botón "Run workflow" para correrla a mano
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Consultar BYMA y BCRA
+        env:
+          BYMA_CLIENT_ID: ${{ secrets.BYMA_CLIENT_ID }}
+          BYMA_CLIENT_SECRET: ${{ secrets.BYMA_CLIENT_SECRET }}
+          BYMA_SCOPE: ${{ secrets.BYMA_SCOPE }}
+        run: python actualizar_datos.py
+
+      - name: Guardar datos.json
+        if: always()
+        run: |
+          git config user.name "actualizacion-automatica"
+          git config user.email "actions@users.noreply.github.com"
+          git add datos.json
+          git diff --cached --quiet || (git commit -m "Datos del día $(date -u +%Y-%m-%d)" && git push)
