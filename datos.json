@@ -1,0 +1,10 @@
+{
+ "generado": "2026-10-29T22:15:53+00:00",
+ "fuentes": {
+  "precios": "BYMA - API Market Data End of Day",
+  "cer_a3500": "BCRA - API Estadísticas Monetarias v4.0 (variables 30 y 5)"
+ },
+ "errores": [
+  "No se pudo consultar https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/30: HTTP 403"
+ ]
+}
