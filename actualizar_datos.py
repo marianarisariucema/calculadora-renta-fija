@@ -41,6 +41,8 @@ def pedir(url, data=None, headers=None, intentos=3):
     """GET (o POST si hay data) con reintentos; devuelve el JSON."""
     headers = dict(headers or {})
     headers.setdefault("Accept", "application/json")
+    # El User-Agent por defecto de Python ("Python-urllib/3.x") suele ser rechazado por firewalls
+    headers.setdefault("User-Agent", "Mozilla/5.0 (compatible; calculadora-renta-fija)")
     ultimo_error = None
     for i in range(intentos):
         try:
@@ -162,7 +164,8 @@ def main():
     datos = {"generado": datetime.now(timezone.utc).isoformat(timespec="seconds"),
              "fuentes": {"precios": "BYMA - API Market Data End of Day",
                          "cer_a3500": "BCRA - API Estadísticas Monetarias v4.0 (variables 30 y 5)"}}
-    errores = []
+    errores = []   # fallas que la página no puede suplir (BYMA): la tarea termina con error
+    avisos = []    # fallas que la página resuelve sola (BCRA): solo quedan como aviso
 
     log("BCRA: CER y A3500")
     try:
@@ -174,7 +177,10 @@ def main():
             datos["a3500"] = {"fecha": u, "valor": fx[u]}
         log(f"  CER: {len(datos['cer'])} datos; A3500: {datos.get('a3500')}")
     except RuntimeError as e:
-        errores.append(str(e)); log(f"  {e}")
+        # La calculadora igual consulta al BCRA desde el navegador y trae el CER cargado,
+        # así que esto no corta la tarea. Se avisa en GitHub como "warning".
+        avisos.append(str(e)); log(f"  {e}")
+        print(f"::warning::BCRA: {e}", flush=True)
 
     log("BYMA: precios de fin de día")
     if not os.environ.get("BYMA_CLIENT_ID") or not os.environ.get("BYMA_CLIENT_SECRET"):
@@ -187,18 +193,26 @@ def main():
       except RuntimeError as e:
         errores.append(str(e)); log(f"  {e}")
 
-    # Si BYMA falló, se conservan los precios del día anterior
-    if "precios" not in datos and os.path.exists(SALIDA):
+    # Lo que no se pudo obtener hoy se conserva del archivo anterior
+    if os.path.exists(SALIDA):
         try:
             prev = json.load(open(SALIDA, encoding="utf-8"))
-            for k in ("precios", "fecha_precios", "futuros"):
-                if k in prev:
-                    datos[k] = prev[k]
-            log("  Se conservan los precios anteriores.")
+            if "precios" not in datos:
+                for k in ("precios", "fecha_precios", "futuros"):
+                    if k in prev:
+                        datos[k] = prev[k]
+                log("  Se conservan los precios anteriores.")
+            if "cer" not in datos:
+                for k in ("cer", "a3500"):
+                    if k in prev:
+                        datos[k] = prev[k]
+                log("  Se conservan el CER y el A3500 anteriores.")
         except Exception:
             pass
 
     datos["errores"] = errores
+    if avisos:
+        datos["avisos"] = avisos
     with open(SALIDA, "w", encoding="utf-8") as f:
         json.dump(datos, f, ensure_ascii=False, indent=1)
     log(f"Listo: {SALIDA}")
@@ -210,4 +224,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
