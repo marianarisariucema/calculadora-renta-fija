@@ -64,6 +64,12 @@ td input{width:88px;text-align:right;padding:2px 4px}
 td .tk{font-weight:700}
 tr.vencida td{color:var(--muted);text-decoration:line-through}
 .hint{font-size:12px;color:var(--muted)}
+/* ventana de feriados */
+dialog#dlgFer{border:1px solid var(--line);padding:0;width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 48px);color:var(--ink);background:#fff}
+dialog#dlgFer::backdrop{background:rgba(0,0,0,.35)}
+dialog#dlgFer .dhead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:3px solid var(--accent)}
+dialog#dlgFer .dbody{padding:12px 14px;overflow:auto;max-height:calc(100vh - 140px)}
+dialog#dlgFer h4{margin:14px 0 6px;font-size:14px}
 .proy{font-style:italic;color:var(--accent)}
 .pill{font-weight:700}
 .pill.good{color:var(--good)}
@@ -128,6 +134,7 @@ footer{border-top:1px solid var(--line);padding-block:14px 24px;color:var(--mute
     <div class="chips">
       <button class="walk" id="btnWalk" type="button" title="Avanza la fecha de operación al próximo día hábil y recalcula todo">Caminar 1 día</button>
       <button id="btnBack" type="button" title="Retrocede la fecha de operación al día hábil anterior">Volver 1 día</button>
+      <button id="btnFerOpen" type="button" title="Ver, agregar o quitar feriados">Feriados</button>
     </div>
     <div class="chips" id="chips"></div>
   </div>
@@ -391,6 +398,19 @@ footer{border-top:1px solid var(--line);padding-block:14px 24px;color:var(--mute
 <footer><div class="wrap">
   Elaborado por Mariana Risari – Maestría en Finanzas, UCEMA. Basado en las calculadoras de la materia Diseño de Títulos de Renta Fija. CER y A3500: API de Estadísticas Monetarias del BCRA. Precios de cierre: API Market Data End of Day de BYMA. No constituye material oficial de la universidad ni recomendación de inversión. CER: serie del BCRA desde el 02/02/2002 hasta <span id="cerLast" class="num"></span>. Feriados cargados de 2002 a 2028.
 </div></footer>
+
+<dialog id="dlgFer" aria-labelledby="dlgFerT">
+  <div class="dhead"><h3 id="dlgFerT" style="margin:0">Feriados</h3><button type="button" id="btnFerClose">Cerrar</button></div>
+  <div class="dbody">
+    <p class="hint" style="margin-top:0">Los cambios quedan guardados en este navegador. Afectan la liquidación, el CER t-10 y el fixing del A3500.</p>
+    <div class="row"><div class="fld"><label for="ferNew2">Agregar feriado</label><input type="date" id="ferNew2" style="width:150px"></div><button id="btnFerAdd2" type="button" class="primary">Agregar</button></div>
+    <p id="ferMsg2" class="hint" style="margin-top:6px"></p>
+    <h4>Cambios hechos por vos</h4>
+    <div class="scroll"><table id="tFerUsr"><thead><tr><th>Fecha</th><th>Día</th><th>Cambio</th><th></th></tr></thead><tbody></tbody></table></div>
+    <h4 style="display:flex;gap:8px;align-items:center">Calendario del año <select id="ferAnio"></select></h4>
+    <div class="scroll"><table id="tFerAnio"><thead><tr><th>Fecha</th><th>Día</th><th>Origen</th><th></th></tr></thead><tbody></tbody></table></div>
+  </div>
+</dialog>
 
 <script>
 // ===== Motor de cálculo (mismas fórmulas que las calculadoras de clase) =====
@@ -989,6 +1009,35 @@ function renderDatos(){
 }
 const _renderBase = render;
 render = function(){ _renderBase(); renderDatos(); };
+
+// ===== ventana de feriados (botón "Feriados" de la barra superior) =====
+function ferAgregar(v, msg){
+  if(!v){ msg.textContent="Elegí una fecha."; return false; }
+  const w=D(v).getUTCDay(); if(w===0||w===6){ msg.textContent="Esa fecha ya es fin de semana."; return false; }
+  if(FERIADOS.has(v)){ msg.textContent=`El ${fd(v)} ya figura como feriado.`; return false; }
+  ferToggle(v,"agregar"); msg.textContent=`Agregado el ${fd(v)}.`; return true;
+}
+function ferFila(d){
+  const quitado=!FERIADOS.has(d), propio=FER_USR.add.includes(d);
+  return `<tr class="${quitado?'vencida':''}"><td class="num">${fd(d)}</td><td>${DIAS[D(d).getUTCDay()]}</td><td>${quitado?'Quitado':propio?'Agregado':'Calendario cargado'}</td><td>${quitado?`<button type="button" data-d="${d}" data-a="restaurar">Restaurar</button>`:`<button type="button" data-d="${d}" data-a="quitar">Quitar</button>`}</td></tr>`;
+}
+function renderDlgFer(){
+  const usr=[...FER_USR.add,...FER_USR.del].sort();
+  $("tFerUsr").tBodies[0].innerHTML = usr.length ? usr.map(ferFila).join("")
+    : `<tr><td colspan="4" style="text-align:left" class="hint">Todavía no agregaste ni quitaste feriados.</td></tr>`;
+  const sel=$("ferAnio"), todos=[...new Set([...FER_BASE,...FER_USR.add])];
+  const anios=[...new Set(todos.map(d=>d.slice(0,4)))].sort();
+  if(!sel.options.length){ sel.innerHTML=anios.map(a=>`<option>${a}</option>`).join(""); sel.value=String(getState().hoy.getUTCFullYear()); }
+  const a=sel.value, lista=todos.filter(d=>d.startsWith(a)).sort();
+  $("tFerAnio").tBodies[0].innerHTML = lista.map(ferFila).join("");
+}
+$("btnFerOpen").onclick=()=>{ $("ferMsg2").textContent=""; renderDlgFer(); $("dlgFer").showModal(); };
+$("btnFerClose").onclick=()=>$("dlgFer").close();
+$("dlgFer").addEventListener("click",e=>{ if(e.target===$("dlgFer")) $("dlgFer").close(); });
+$("ferAnio").onchange=renderDlgFer;
+$("btnFerAdd2").onclick=()=>{ if(ferAgregar($("ferNew2").value,$("ferMsg2"))){ $("ferNew2").value=""; renderDlgFer(); } };
+$("dlgFer").addEventListener("click",e=>{ const bt=e.target.closest("button[data-d]"); if(!bt) return; ferToggle(bt.dataset.d, bt.dataset.a);
+  $("ferMsg2").textContent = bt.dataset.a==="quitar" ? `Quitado el ${fd(bt.dataset.d)}.` : `Restaurado el ${fd(bt.dataset.d)}.`; renderDlgFer(); });
 
 
 // ===== API del BCRA: CER y A3500 =====
