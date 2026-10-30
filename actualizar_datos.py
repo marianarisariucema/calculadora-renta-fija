@@ -21,7 +21,7 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
 
-BYMA_TOKEN_URL = os.environ.get("BYMA_TOKEN_URL", "https://api.byma.com.ar/oauth/token/")
+BYMA_TOKEN_URL = os.environ.get("BYMA_TOKEN_URL", "https://apigw.byma.com.ar/oauth/token/")
 BYMA_EOD_URL = os.environ.get("BYMA_EOD_URL", "https://apigw.byma.com.ar/eod/v1")
 BCRA_URL = os.environ.get("BCRA_URL", "https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias")
 SALIDA = os.environ.get("SALIDA", "datos.json")
