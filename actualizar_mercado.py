@@ -148,6 +148,9 @@ def precios_byma():
     for servicio, params in SERVICIOS_RV:
         cargar(servicio, dict(params, market="BYMA", operativeform="CONTADO", currency="ARS", settlperiod=""),
                f"rv {servicio} {params.get('group', '')}".strip(), out)
+    # CEDEARs y acciones en dólar MEP y cable, para saber en qué moneda conviene comprar
+    for cur, dest in (("USD", "MEP"), ("EXT", "CCL")):
+        cargar("equity", dict(market="BYMA", operativeform="CONTADO", currency=cur, settlperiod=""), f"rv equity {dest}", usd.setdefault(dest, {}))
     return out, usd, fecha
 
 
@@ -261,6 +264,10 @@ def main():
             h["fechas"], h["cierres"] = h["fechas"][-400:], h["cierres"][-400:]
             guardar_hist(t, h)
         salida[t] = dict(p, **indicadores(h["cierres"]))
+        for dest, campo in (("MEP", "pxMEP"), ("CCL", "pxCCL")):
+            q = usd.get(dest, {}).get(t + ("D" if dest == "MEP" else "C")) or usd.get(dest, {}).get(t)
+            if q and q.get("px"):
+                salida[t][campo] = q["px"]
 
     # Dólar MEP y CCL implícitos con AL30 / GD30
     mep = ccl = None
