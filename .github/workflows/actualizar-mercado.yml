@@ -1,0 +1,40 @@
+name: Actualizar mercado (panel)
+
+on:
+  schedule:
+    - cron: "55 21 * * 1-5"   # 18:55 hora Argentina, después del robot de la calculadora
+    - cron: "25 23 * * 1-5"   # 20:25, segundo intento
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ["actualizar_mercado.py", ".github/workflows/actualizar-mercado.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-datos
+  cancel-in-progress: false
+
+jobs:
+  mercado:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Consultar BYMA, BCRA y completar historial
+        env:
+          BYMA_CLIENT_ID: ${{ secrets.BYMA_CLIENT_ID }}
+          BYMA_CLIENT_SECRET: ${{ secrets.BYMA_CLIENT_SECRET }}
+          BYMA_SCOPE: ${{ secrets.BYMA_SCOPE }}
+        run: python actualizar_mercado.py
+      - name: Guardar
+        if: always()
+        run: |
+          git config user.name "actualizacion-automatica"
+          git config user.email "actions@users.noreply.github.com"
+          git pull --rebase --autostash || true
+          git add mercado.json diagnostico.json historial || true
+          git diff --cached --quiet || (git commit -m "Mercado $(date -u +%Y-%m-%d)" && git push)
